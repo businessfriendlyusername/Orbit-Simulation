@@ -6,6 +6,7 @@
 from visual import *
 from Body import *
 from Integrator import *
+from visual.graph import *
 import math
 
 scene = display(title='Orbit Sim', width = 1000, height=1000, center=(0,0,0))
@@ -15,13 +16,14 @@ bodies = []
 #Time Variables that can be changed
 time = 0
 dt = 86400 / 100
-years = 5000
-final_time = 86400 * 365 * years
+years = 1
+final_time = 86400 * 365 * years 
 rate_ani = 10000
 
 #Append Bodies to be used in Sim
 bodies.append(Body(0, 0, 1.98855*math.pow(10,30))) # sun
-bodies.append(Body(29800, 149600000000, 5.972*math.pow(10,24))) # earth
+bodies.append(Body(29800, 149600000000, 5.972*math.pow(10,24), bodies[0], 180)) # earth
+bodies.append(Body(1000, 384400000, 7.347*math.pow(10,22), bodies[1])) # poon
 
 var = [0.0] * len(bodies) * 4
 num_eqs = len(bodies) * 4
@@ -71,12 +73,16 @@ Earth.trail_object.color=color.green
 Earth.trail_type = points
 Earth.interval = 10
 Earth.retain=1000
-text(text='',align='left',pos=(-8*10**10,-8*10**10,0),color=color.green,height=1*10**10)
+Moon = sphere(pos=(bodies[2].pos[0],bodies[2].pos[1],0), radius=1*10**9, make_trail=True)
+Moon.trail_object.color=color.white
+Moon.trail_type=points
+Moon.interval=10
+Moon.retain=500
 
 #------------------------------------------------------------------------------
-#for i in range(len(bodies)):
-#    planets.append([])
-Distance = []
+
+ES_Distance = []
+ME_Distance = []
 while time < final_time:
     var = integrator.integrateRK4(var, dt)
 
@@ -84,15 +90,35 @@ while time < final_time:
         rate(rate_ani)
         bodies[int(i/4)].pos[0] = var[i]
         bodies[int(i/4)].pos[1] = var[i+1]
+        #Moon Distance scaling-----------------------
+        scale = 50
+        scaleX = scale*(bodies[1].pos[0]-bodies[2].pos[0])
+        scaleY = scale*(bodies[1].pos[1]-bodies[2].pos[1])
+        #Drawing-------------------------------------
         Sun.pos = (bodies[0].pos[0],bodies[0].pos[1],0)
         Earth.pos = (bodies[1].pos[0],bodies[1].pos[1],0)
-        Distance.append("distance = " + str(sqrt(((bodies[0].pos[0]-bodies[1].pos[0])**2+(bodies[0].pos[1]-bodies[1].pos[1])**2))))
+        Moon.pos = (bodies[2].pos[0]+scaleX,bodies[2].pos[1]+scaleY,0)
+        #Record Distance-----------------------------
+        ES_Distance.append(sqrt(((bodies[0].pos[0]-bodies[1].pos[0])**2+(bodies[0].pos[1]-bodies[1].pos[1])**2)))
+        ME_Distance.append(sqrt(((bodies[1].pos[0]-bodies[2].pos[0])**2+(bodies[1].pos[1]-bodies[2].pos[1])**2)))
+        #Update Velocity-----------------------------
         bodies[int(i/4)].velocity[0] = var[i+2]
         bodies[int(i/4)].velocity[1] = var[i+3]
-        #print("body " + str(int(i/4)) + " position: (" + str(bodies[int(i/4)].pos[0]) + "," + str(bodies[int(i/4)].pos[1]) + ")")
-        #print("body " + str(int(i/4)) + " velocity: (" + str(bodies[int(i/4)].velocity[0]) + "," + str(bodies[int(i/4)].velocity[1]) + ")")
-    #print("\n")
+        
 
     time += dt
+
+#--------------------------------Graphing------------------------------------
+gdisplay(title='Distance between Earth and Sun',xtitle='Time',ytitle='Distance(KM)',background=color.white, foreground=color.black)
+f1 = gcurve(color=color.cyan)
+gdisplay(title='Distance between Moon and Earth',xtitle='Time',ytitle='Distance(KM)',background=color.white, foreground=color.black)
+f2 = gcurve(color=color.red)
+
+for x in range(len(ES_Distance)):
+    f1.plot(pos=(x,ES_Distance[x]))
+
+
+for x in range(len(ME_Distance)):
+    f2.plot(pos=(x,ME_Distance[x]))
 
 
